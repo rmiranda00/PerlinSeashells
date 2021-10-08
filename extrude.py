@@ -62,7 +62,7 @@ def make_circle(x, y, z, r, n):
         zi = z
         pi = np.array([xi, yi, zi])
         vertices.append(pi)
-    return np.array(vertices)    
+    return np.array(vertices)
     
 c1 = make_circle(0, 0, 0, 1, 100)
 c2 = make_circle(0,0,10,2,100)
