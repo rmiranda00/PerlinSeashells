@@ -63,8 +63,29 @@ def make_circle(x, y, z, r, n):
         pi = np.array([xi, yi, zi])
         vertices.append(pi)
     return np.array(vertices)
+
+def make_square(x,y,z,r,n):
+    center = np.array([x,y,z])
+    theta = 2 * math.pi / n
+    side_offset = math.pi / 2
+    offset = math.pi / 4
+    vertices = []
+
+    for i in range(0, n):
+        side = int(i * 4 / n)
+        ri = r / math.sqrt(2) / math.cos(i * theta - side * side_offset - offset)
+        xi = ri * math.cos(i * theta) + center[0]
+        yi = ri * math.sin(i * theta) + center[1]
+        zi = z
+        pi = np.array([xi, yi, zi])
+        vertices.append(pi)
+    return np.array(vertices)
     
 c1 = make_circle(0, 0, 0, 1, 100)
 c2 = make_circle(0,0,10,2,100)
 
+c3 = make_circle(10,0,0,1,100)
+s1 = make_square(10,0,10,2,100)
+
 interpolate_mesh(c1, c2, 20)
+interpolate_mesh(c3,s1,20)
