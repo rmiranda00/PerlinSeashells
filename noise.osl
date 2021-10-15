@@ -24,4 +24,3 @@ shader noise(
     USimplex = noise("usimplex", Point, Time);
     
 }
-
