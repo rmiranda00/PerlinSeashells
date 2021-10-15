@@ -36,6 +36,12 @@ class Vector2(object):
     def __rmul__(self, other: Any):
         return self.__mul__(other)
 
+    def __sub__(self, other: 'Vector3'):
+        return Vector2(self.x - other.x, self.y - other.y)
+
+    def __neg__(self):
+        return Vector2(-1 * self.x, -1 * self.y)
+
     def __abs__(self):
         return math.sqrt(self.x * self.x + self.y * self.y)
 
@@ -66,6 +72,15 @@ class Vector3(object):
             return self.x * other.x + self.y * other.y + self.z * other.z
         else:
             return Vector3(other * self.x, other * self.y, other * self.z)
+
+    def __rmul__(self, other: Any):
+        return self.__mul__(other)
+
+    def __sub__(self, other: 'Vector3'):
+        return Vector3(self.x - other.x, self.y - other.y, self.z - other.z)
+
+    def __neg__(self):
+        return Vector3(-1 * self.x, -1 * self.y, -1 * self.y)
 
     def __abs__(self):
         return math.sqrt(self.x * self.x + self.y * self.y + self.z * self.z)
@@ -99,7 +114,7 @@ class coiling_axis(object):
         self.max_iterations = iterations
         self.current_iteration = 0
 
-    def get_axis_location(self):
+    def get_axis_position(self):
         diff_vector = self.end_point - self.start_point
         return self.start_point + (self.current_iteration / self.max_iterations) * diff_vector
 
@@ -107,12 +122,15 @@ class coiling_axis(object):
         angle = self.coiling_rate * self.current_iteration
         return math.cos(angle) * self.normal + math.sin(angle) * self.binormal
 
+    def get_tangent_vector(self):
+        return (self.end_point - self.start_point).normalize()
+
     def iterate(self):
         self.current_iteration += 1
         return self.current_iteration == self.max_iterations
 
-def make_circle(cx, cy, r, n):
-    center = Vector3(cx, cy)
+def make_circle(r, n):
+    center = Vector2(0, 0)
     theta = 2 * math.pi / n
     vertices = []
     for i in range(0, n):
@@ -123,11 +141,44 @@ def make_circle(cx, cy, r, n):
 
 def generate_coil(generating_shape, coiling_axis, coiling_radius):
     vertices = []
+    n_vertices = 0
     edges = []
     faces = []
 
+    last_vertices = []
+    tangent = coiling_axis.get_tangent_vector()
+
     while True:
-        if generating_shape.iterate():
+        new_vertices = []
+
+        axis_position = coiling_axis.get_axis_position()
+        normal = coiling_axis.get_normal_vector()
+
+        iteration_center = axis_position + coiling_radius * normal
+
+        for gen_v in generating_shape:
+            v = iteration_center + gen_v.x * normal + gen_v.y * tangent
+            new_vertices.append(n_vertices)
+            vertices.append(v.to_list())
+            n_vertices += 1
+
+        l = len(generating_shape)
+        for i in range(0, l):
+            edges.append([new_vertices[i], new_vertices[(i + 1) % l]])
+
+            if (last_vertices):
+                edges.append([last_vertices[i], last_vertices[(i + 1) % l]])
+                edges.append([last_vertices[i], new_vertices[i]])
+                edges.append([last_vertices[(i + 1) % l], new_vertices[(i + 1) % l]])
+
+                faces.append([
+                    last_vertices[i], last_vertices[(i + 1) % l],
+                    new_vertices[(i + 1) % l], new_vertices[i]
+                ])
+
+        last_vertices = new_vertices
+
+        if coiling_axis.iterate():
             break
 
     generate_mesh(vertices, edges, faces)
@@ -143,3 +194,17 @@ def generate_mesh(vertices, edges, faces):
     bpy.context.scene.collection.children.link(new_collection)
 
     new_collection.objects.link(new_object)
+
+start = Vector3(0,0,0)
+end = Vector3(10,0,0)
+normal = Vector3(0,1,0)
+
+coiling_rate = 0.125
+iterations = 101
+
+axis = coiling_axis(start, end, normal, coiling_rate, iterations)
+
+circle = make_circle(1, 20)
+coiling_radius = 2
+
+generate_coil(circle, axis, coiling_radius)
