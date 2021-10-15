@@ -1,3 +1,4 @@
+import bpy
 from typing import Any
 
 import math
@@ -79,17 +80,21 @@ class Vector3(object):
     def __str__(self):
         return "({0},{1},{2})".format(self.x, self.y, self.z)
 
+    def __pow__(self, other: 'Vector3'):
+        return Vector3(self.y * other.z - other.y * self.z, - self.x * other.z + other.x * self.z, self.x * other.y - other.x * self.y)
+
     def to_list(self):
         return [self.x, self.y, self.z]
 
 class coiling_axis(object):
-    def __init__(self, start_point: Vector3, end_point: Vector3, start_angle: Vector3, coiling_rate: float, iterations: int):
+    def __init__(self, start_point: Vector3, end_point: Vector3, normal: Vector3, coiling_rate: float, iterations: int):
         self.start_point = start_point
         self.end_point = end_point
 
         axial_vector = end_point - start_point
-        self.start_angle = start_angle - start_angle.project(axial_vector)
-        
+        self.normal = (normal - normal.project(axial_vector)).normalize()
+        self.binormal = (normal ** axial_vector).normalize()
+
         self.coiling_rate = coiling_rate
         self.max_iterations = iterations
         self.current_iteration = 0
@@ -99,12 +104,42 @@ class coiling_axis(object):
         return self.start_point + (self.current_iteration / self.max_iterations) * diff_vector
 
     def get_normal_vector(self):
-        diff_vector = self.end_point - self.start_point
-        curr_angle = self.start_angle + self.coiling_rate * self.current_iteration
+        angle = self.coiling_rate * self.current_iteration
+        return math.cos(angle) * self.normal + math.sin(angle) * self.binormal
 
+    def iterate(self):
+        self.current_iteration += 1
+        return self.current_iteration == self.max_iterations
 
-
-    
+def make_circle(cx, cy, r, n):
+    center = Vector3(cx, cy)
+    theta = 2 * math.pi / n
+    vertices = []
+    for i in range(0, n):
+        r_i = r * Vector2(math.cos(i * theta), math.sin(i * theta))
+        p_i = center + r_i
+        vertices.append(p_i)
+    return vertices
 
 def generate_coil(generating_shape, coiling_axis, coiling_radius):
-    pass
+    vertices = []
+    edges = []
+    faces = []
+
+    while True:
+        if generating_shape.iterate():
+            break
+
+    generate_mesh(vertices, edges, faces)
+
+def generate_mesh(vertices, edges, faces):
+    new_mesh = bpy.data.meshes.new('new_mesh')
+    new_mesh.from_pydata(vertices, edges, faces)
+    new_mesh.update()
+
+    new_object = bpy.data.objects.new('new_object', new_mesh)
+
+    new_collection = bpy.data.collections.new('new_collection')
+    bpy.context.scene.collection.children.link(new_collection)
+
+    new_collection.objects.link(new_object)
