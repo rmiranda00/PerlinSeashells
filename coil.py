@@ -101,6 +101,12 @@ class Vector3(object):
     def to_list(self):
         return [self.x, self.y, self.z]
 
+def make_lambda_function(input):
+    if type(input) is float or type(input) is int:
+        return lambda x : input
+    elif type(displacement_rate) is type(lambda x : None):
+        return input
+
 class coiling_axis(object):
     def __init__(self, start_point: Vector3, tangent: Vector3, normal: Vector3, coiling_rate, displacement_rate, coiling_radius, scaling_factor, iterations: int):        
         self.current_angle = 0.0
@@ -110,25 +116,10 @@ class coiling_axis(object):
         self.normal = (normal - normal.project(tangent)).normalize()
         self.binormal = (normal ** tangent).normalize()
 
-        if type(displacement_rate) is float or type(displacement_rate) is int:
-            self.displacement_rate = lambda x : displacement_rate
-        elif type(displacement_rate) is type(lambda x : None):
-            self.displacement_rate = displacement_rate
-
-        if type(coiling_rate) is float or type(coiling_rate) is int:
-            self.coiling_rate = lambda x : coiling_rate
-        elif type(coiling_rate) is type(lambda x : None):
-            self.coiling_rate = coiling_rate
-
-        if type(coiling_radius) is float or type(coiling_radius) is int:
-            self.coiling_radius = lambda x : coiling_radius
-        elif type(coiling_radius) is type(lambda x : None):
-            self.coiling_radius = coiling_radius
-
-        if type(scaling_factor) is float or type(scaling_factor) is int:
-            self.scaling_factor = lambda x : scaling_factor
-        elif type(scaling_factor) is type(lambda x : None):
-            self.scaling_factor = scaling_factor
+        self.displacement_rate = make_lambda_function(displacement_rate)
+        self.coiling_rate = make_lambda_function(coiling_rate)
+        self.coiling_radius = make_lambda_function(coiling_radius)
+        self.scaling_factor = make_lambda_function(scaling_factor)
 
         self.max_iterations = iterations
         self.current_iteration = 0
@@ -143,14 +134,14 @@ class coiling_axis(object):
         return self.tangent
 
     def get_radius(self):
-        return self.coiling_radius(1.0 * self.current_iteration / self.max_iterations)
+        return self.coiling_radius(self.current_iteration)
 
     def get_scaling_factor(self):
-        return self.scaling_factor(1.0 * self.current_iteration / self.max_iterations)
+        return self.scaling_factor(self.current_iteration)
 
     def iterate(self):
-        self.current_angle += self.coiling_rate(1.0 * self.current_iteration / self.max_iterations)
-        self.current_axis_position = self.current_axis_position + self.displacement_rate(1.0 * self.current_iteration / self.max_iterations) * self.tangent
+        self.current_angle += self.coiling_rate(self.current_iteration)
+        self.current_axis_position = self.current_axis_position + self.displacement_rate(self.current_iteration) * self.tangent
         self.current_iteration += 1
         return self.current_iteration == self.max_iterations
 
@@ -223,11 +214,12 @@ def generate_mesh(vertices, edges, faces):
 
     new_collection.objects.link(new_object)
 
+
 start = Vector3(0,0,0)
 tangent = Vector3(1,0,0)
 normal = Vector3(0,1,0)
 
-displacement_rate = 0.01
+displacement_rate = 0.1
 coiling_rate = 0.125
 coiling_radius = 2
 scaling_factor = 1
@@ -239,3 +231,14 @@ axis = coiling_axis(start, tangent, normal, coiling_rate, displacement_rate, coi
 circle = make_circle(1, 20)
 
 generate_coil(circle, axis)
+
+
+'''
+# Helicospiral
+
+start = Vector3(0,0,0)
+tangent = Vector3(0,0,1)
+normal = Vector3(1,0,0)
+
+coiling_rate = math.pi / 18
+'''
