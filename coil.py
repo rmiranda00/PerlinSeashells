@@ -102,13 +102,18 @@ class Vector3(object):
         return [self.x, self.y, self.z]
 
 class coiling_axis(object):
-    def __init__(self, start_point: Vector3, end_point: Vector3, normal: Vector3, coiling_rate, coiling_radius, scaling_factor, iterations: int):
-        self.start_point = start_point
-        self.end_point = end_point
+    def __init__(self, start_point: Vector3, tangent: Vector3, normal: Vector3, coiling_rate, displacement_rate, coiling_radius, scaling_factor, iterations: int):        
+        self.current_angle = 0.0
+        self.current_axis_position = start_point
 
-        axial_vector = end_point - start_point
-        self.normal = (normal - normal.project(axial_vector)).normalize()
-        self.binormal = (normal ** axial_vector).normalize()
+        self.tangent = tangent.normalize()
+        self.normal = (normal - normal.project(tangent)).normalize()
+        self.binormal = (normal ** tangent).normalize()
+
+        if type(displacement_rate) is float or type(displacement_rate) is int:
+            self.displacement_rate = lambda x : displacement_rate
+        elif type(displacement_rate) is type(lambda x : None):
+            self.displacement_rate = displacement_rate
 
         if type(coiling_rate) is float or type(coiling_rate) is int:
             self.coiling_rate = lambda x : coiling_rate
@@ -128,17 +133,14 @@ class coiling_axis(object):
         self.max_iterations = iterations
         self.current_iteration = 0
 
-        self.current_angle = 0.0
-
     def get_axis_position(self):
-        diff_vector = self.end_point - self.start_point
-        return self.start_point + (self.current_iteration / self.max_iterations) * diff_vector
+        return self.current_axis_position
 
     def get_normal_vector(self):
         return math.cos(self.current_angle) * self.normal + math.sin(self.current_angle) * self.binormal
 
     def get_tangent_vector(self):
-        return (self.end_point - self.start_point).normalize()
+        return self.tangent
 
     def get_radius(self):
         return self.coiling_radius(1.0 * self.current_iteration / self.max_iterations)
@@ -148,6 +150,7 @@ class coiling_axis(object):
 
     def iterate(self):
         self.current_angle += self.coiling_rate(1.0 * self.current_iteration / self.max_iterations)
+        self.current_axis_position = self.current_axis_position + self.displacement_rate(1.0 * self.current_iteration / self.max_iterations) * self.tangent
         self.current_iteration += 1
         return self.current_iteration == self.max_iterations
 
@@ -221,15 +224,17 @@ def generate_mesh(vertices, edges, faces):
     new_collection.objects.link(new_object)
 
 start = Vector3(0,0,0)
-end = Vector3(10,0,0)
+tangent = Vector3(1,0,0)
 normal = Vector3(0,1,0)
 
+displacement_rate = 0.01
 coiling_rate = 0.125
-iterations = 101
-coiling_radius = lambda x : x
-scaling_factor = lambda x : x
+coiling_radius = 2
+scaling_factor = 1
 
-axis = coiling_axis(start, end, normal, coiling_rate, coiling_radius, scaling_factor, iterations)
+iterations = 101
+
+axis = coiling_axis(start, tangent, normal, coiling_rate, displacement_rate, coiling_radius, scaling_factor, iterations)
 
 circle = make_circle(1, 20)
 
