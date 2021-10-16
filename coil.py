@@ -1,5 +1,5 @@
 import bpy
-from typing import Any
+from typing import Any, Union
 
 import math
 
@@ -102,7 +102,7 @@ class Vector3(object):
         return [self.x, self.y, self.z]
 
 class coiling_axis(object):
-    def __init__(self, start_point: Vector3, end_point: Vector3, normal: Vector3, coiling_rate: float, iterations: int):
+    def __init__(self, start_point: Vector3, end_point: Vector3, normal: Vector3, coiling_rate, coiling_radius, scaling_factor, iterations: int):
         self.start_point = start_point
         self.end_point = end_point
 
@@ -110,22 +110,44 @@ class coiling_axis(object):
         self.normal = (normal - normal.project(axial_vector)).normalize()
         self.binormal = (normal ** axial_vector).normalize()
 
-        self.coiling_rate = coiling_rate
+        if type(coiling_rate) is float or type(coiling_rate) is int:
+            self.coiling_rate = lambda x : coiling_rate
+        elif type(coiling_rate) is type(lambda x : None):
+            self.coiling_rate = coiling_rate
+
+        if type(coiling_radius) is float or type(coiling_radius) is int:
+            self.coiling_radius = lambda x : coiling_radius
+        elif type(coiling_radius) is type(lambda x : None):
+            self.coiling_radius = coiling_radius
+
+        if type(scaling_factor) is float or type(scaling_factor) is int:
+            self.scaling_factor = lambda x : scaling_factor
+        elif type(scaling_factor) is type(lambda x : None):
+            self.scaling_factor = scaling_factor
+
         self.max_iterations = iterations
         self.current_iteration = 0
+
+        self.current_angle = 0.0
 
     def get_axis_position(self):
         diff_vector = self.end_point - self.start_point
         return self.start_point + (self.current_iteration / self.max_iterations) * diff_vector
 
     def get_normal_vector(self):
-        angle = self.coiling_rate * self.current_iteration
-        return math.cos(angle) * self.normal + math.sin(angle) * self.binormal
+        return math.cos(self.current_angle) * self.normal + math.sin(self.current_angle) * self.binormal
 
     def get_tangent_vector(self):
         return (self.end_point - self.start_point).normalize()
 
+    def get_radius(self):
+        return self.coiling_radius(1.0 * self.current_iteration / self.max_iterations)
+
+    def get_scaling_factor(self):
+        return self.scaling_factor(1.0 * self.current_iteration / self.max_iterations)
+
     def iterate(self):
+        self.current_angle += self.coiling_rate(1.0 * self.current_iteration / self.max_iterations)
         self.current_iteration += 1
         return self.current_iteration == self.max_iterations
 
@@ -139,7 +161,7 @@ def make_circle(r, n):
         vertices.append(p_i)
     return vertices
 
-def generate_coil(generating_shape, coiling_axis, coiling_radius):
+def generate_coil(generating_shape, coiling_axis):
     vertices = []
     n_vertices = 0
     edges = []
@@ -153,10 +175,13 @@ def generate_coil(generating_shape, coiling_axis, coiling_radius):
 
         axis_position = coiling_axis.get_axis_position()
         normal = coiling_axis.get_normal_vector()
+        coiling_radius = coiling_axis.get_radius()
+        scaling_factor = coiling_axis.get_scaling_factor()
 
         iteration_center = axis_position + coiling_radius * normal
 
         for gen_v in generating_shape:
+            gen_v = scaling_factor * gen_v
             v = iteration_center + gen_v.x * normal + gen_v.y * tangent
             new_vertices.append(n_vertices)
             vertices.append(v.to_list())
@@ -201,10 +226,11 @@ normal = Vector3(0,1,0)
 
 coiling_rate = 0.125
 iterations = 101
+coiling_radius = lambda x : x
+scaling_factor = lambda x : x
 
-axis = coiling_axis(start, end, normal, coiling_rate, iterations)
+axis = coiling_axis(start, end, normal, coiling_rate, coiling_radius, scaling_factor, iterations)
 
 circle = make_circle(1, 20)
-coiling_radius = 2
 
-generate_coil(circle, axis, coiling_radius)
+generate_coil(circle, axis)
