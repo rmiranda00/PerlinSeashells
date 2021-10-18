@@ -92,7 +92,7 @@ def make_lambda_function(input):
         return input
 
 class coiling_axis(object):
-    def __init__(self, start_point: Vector3, tangent: Vector3, normal: Vector3, coiling_rate, displacement, coiling_radius, scaling_factor, iterations: int):        
+    def __init__(self, start_point: Vector3, tangent: Vector3, normal: Vector3, coiling_rate, displacement, coiling_radius, scaling_factor, generating_shape, iterations: int):        
         self.start_point = start_point
 
         self.tangent = tangent.normalize()
@@ -106,6 +106,11 @@ class coiling_axis(object):
 
         self.max_iterations = iterations
         self.current_iteration = 0
+
+        if type(generating_shape) is list:
+            self.generating_shape = lambda x : generating_shape
+        elif type(generating_shape) is type(lambda x : None):
+            self.generating_shape = generating_shape
 
     def get_axis_position(self):
         current_axis_position = self.displacement(self.current_iteration)
@@ -124,6 +129,9 @@ class coiling_axis(object):
     def get_scaling_factor(self):
         return self.scaling_factor(self.current_iteration)
 
+    def get_generating_shape(self):
+        return self.generating_shape(self.current_iteration)
+
     def iterate(self):
         self.current_iteration += 1
         return self.current_iteration < self.max_iterations
@@ -138,7 +146,30 @@ def make_circle(r, n):
         vertices.append(p_i)
     return vertices
 
-def generate_sweep(generating_shape, coiling_axis):
+def make_square(r,n):
+    center = Vector2(0,0)
+    theta = 2 * math.pi / n
+    side_offset = math.pi / 2
+    offset = math.pi / 4
+    vertices = []
+
+    for i in range(0, n):
+        side = int(i * 4 / n)
+        ri = r / math.sqrt(2) / math.cos(i * theta - side * side_offset - offset)
+        pi = center + ri * Vector2(math.cos(i * theta) , math.sin(i * theta))
+        vertices.append(pi)
+    return vertices
+
+def homotopy(start_shape, end_shape, n, N):
+    vertices = []
+    for i in range(len(start_shape)):
+        s = start_shape[i]
+        e = end_shape[i]
+        vertices.append(s + (1.0 * n / N) * (e - s))
+    
+    return vertices
+
+def generate_sweep(coiling_axis):
     vertices = []
     n_vertices = 0
     edges = []
@@ -156,6 +187,8 @@ def generate_sweep(generating_shape, coiling_axis):
         scaling_factor = coiling_axis.get_scaling_factor()
 
         iteration_center = axis_position + coiling_radius * normal
+
+        generating_shape = coiling_axis.get_generating_shape()
 
         for gen_v in generating_shape:
             gen_v = scaling_factor * gen_v
@@ -193,7 +226,7 @@ def generate_mesh(vertices, edges, faces):
     bpy.context.scene.collection.children.link(new_collection)
 
     new_collection.objects.link(new_object)
-    
+
 # Generating some seashells...
 
 # Tubular Shell
@@ -217,10 +250,10 @@ def scaling_factor(n):
 
 iterations = 109
 
-axis = coiling_axis(start, tangent, normal, coiling_rate, displacement, coiling_radius, scaling_factor, iterations)
 circle = make_circle(1, 20)
+axis = coiling_axis(start, tangent, normal, coiling_rate, displacement, coiling_radius, scaling_factor, circle, iterations)
 
-generate_sweep(circle, axis)
+generate_sweep(axis)
 
 # Classical shell
 start = Vector3(20,0,0)
@@ -243,10 +276,10 @@ def scaling_factor(n):
 
 iterations = 400
 
-axis = coiling_axis(start, tangent, normal, coiling_rate, displacement, coiling_radius, scaling_factor, iterations)
 circle = make_circle(1, 20)
+axis = coiling_axis(start, tangent, normal, coiling_rate, displacement, coiling_radius, scaling_factor, circle, iterations)
 
-generate_sweep(circle, axis)
+generate_sweep(axis)
 
 # spherical shell
 
@@ -270,10 +303,10 @@ def scaling_factor(n):
 
 iterations = 400
 
-axis = coiling_axis(start, tangent, normal, coiling_rate, displacement, coiling_radius, scaling_factor, iterations)
 circle = make_circle(1, 20)
+axis = coiling_axis(start, tangent, normal, coiling_rate, displacement, coiling_radius, scaling_factor, circle, iterations)
 
-generate_sweep(circle, axis)
+generate_sweep(axis)
 
 # custom generating curve shell...
 
@@ -297,14 +330,14 @@ def scaling_factor(n):
 
 iterations = 400
 
-axis = coiling_axis(start, tangent, normal, coiling_rate, displacement, coiling_radius, scaling_factor, iterations)
 generating_curve = [
     Vector2(0,-6), Vector2(0,-4), Vector2(0,-2), Vector2(0,0), Vector2(0,2), Vector2(0,4), Vector2(0,6),
     Vector2(0.2, 6.3), Vector2(0.4, 6.1), Vector2(0.672, 5.5), Vector2(0.845, 5), Vector2(1, 4), Vector2(2, 2),
     Vector2(3.394, 0), Vector2(4.363, -2), Vector2(3.394, -4), Vector2(1.104, -6), Vector2(0.4, -6.4), Vector2(0.2, -6.3)
 ]
+axis = coiling_axis(start, tangent, normal, coiling_rate, displacement, coiling_radius, scaling_factor, generating_curve, iterations)
 
-generate_sweep(generating_curve, axis)
+generate_sweep(axis)
 
 # Patelliform Shell
 start = Vector3(65,0,10)
@@ -327,7 +360,86 @@ def scaling_factor(n):
 
 iterations = 325
 
-axis = coiling_axis(start, tangent, normal, coiling_rate, displacement, coiling_radius, scaling_factor, iterations)
 circle = make_circle(1, 20)
+axis = coiling_axis(start, tangent, normal, coiling_rate, displacement, coiling_radius, scaling_factor, circle, iterations)
 
-generate_sweep(circle, axis)
+generate_sweep(axis)
+
+'''
+Homotopy Example
+
+start = Vector3(0,0,0)
+tangent = Vector3(0,0,1)
+normal = Vector3(1,0,0)
+
+def coiling_rate(n):
+    return n * math.pi / 18
+
+def displacement(n):
+    return n / 9
+
+def coiling_radius(n):
+    return 5
+
+def scaling_factor(n):
+    return 1
+
+iterations = 108
+
+circle = make_circle(1, 20)
+square = make_square(1, 20)
+
+
+def generating_shape(n):
+    return homotopy(circle, square, n, iterations)
+        
+
+axis = coiling_axis(start, tangent, normal, coiling_rate, displacement, coiling_radius, scaling_factor, generating_shape, iterations)
+
+generate_sweep(axis)
+'''
+
+# Varying generating curve example...
+start = Vector3(85,0,0)
+tangent = Vector3(0,0,1)
+normal = Vector3(1,0,0)
+
+l = 1.03
+
+def coiling_rate(n):
+    return n * math.pi / 18
+
+def displacement(n):
+    return 0.5 * 1.5 * l ** (n - 300)
+
+def coiling_radius(n):
+    return 0
+
+def scaling_factor(n):
+    return 0.5 * (l ** (n - 300)) / 6
+
+iterations = 400
+
+inner_curve = [
+    Vector2(0,-6), Vector2(0,-4), Vector2(0,-2), Vector2(0,0), Vector2(0,2), Vector2(0,4), Vector2(0,6),
+    Vector2(0.2, 6.3), Vector2(0.4, 6.1), Vector2(0.672, 5.5), Vector2(0.845, 5), Vector2(1 * 0.75, 4), Vector2(2 * 0.75, 2),
+    Vector2(3.394 * 0.75, 0), Vector2(4.363 * 0.75, -2), Vector2(3.394 * 0.75, -4), Vector2(1.104 * 0.75, -6), Vector2(0.4, -6.4), Vector2(0.2, -6.3)
+]
+
+outer_curve = [
+    Vector2(0,-6), Vector2(0,-4), Vector2(0,-2), Vector2(0,0), Vector2(0,2), Vector2(0,4), Vector2(0,6),
+    Vector2(0.2, 6.3), Vector2(0.4, 6.1), Vector2(0.672, 5.5), Vector2(0.845, 5.3), Vector2(1 * 1.25, 5), Vector2(2 * 1.25, 3),
+    Vector2(3.394 * 1.25, 0), Vector2(4.363 * 1.25, -3), Vector2(3.394 * 1.25, -5), Vector2(1.104 * 1.25, -6), Vector2(0.4, -6.4), Vector2(0.2, -6.3)
+]
+
+def generating_curve(n):
+    if n < 395:
+        return inner_curve
+    else:
+        return homotopy(inner_curve, outer_curve, n - 395, 5)
+
+
+axis = coiling_axis(start, tangent, normal, coiling_rate, displacement, coiling_radius, scaling_factor, generating_curve, iterations)
+
+generate_sweep(axis)
+
