@@ -3,22 +3,6 @@ from typing import Any, Union
 
 import math
 
-'''
-    coiling_shape --> ordered collection on points in 2 dimensions
-        centered around the origin. This can be a function along the
-        coiling axis.
-
-    coiling_axis --> specify the start and end points of the interpolation.
-        Additional information: the start and end degrees, and the rate
-        of coiling i.e. how far the move vertically per rotation
-        ** end angle is overspecification based on coiling rate.
-        ** also, coiling rate can be a function of coiling axis
-        ** also specifying the number of iterations
-
-    coiling_radius --> the distance from the coiling axis to the center of
-        the generating shape. This can be a function along the coiling axis.
-'''
-
 class Vector2(object):
     def __init__(self, x, y):
         self.x = x
@@ -104,19 +88,18 @@ class Vector3(object):
 def make_lambda_function(input):
     if type(input) is float or type(input) is int:
         return lambda x : input
-    elif type(displacement_rate) is type(lambda x : None):
+    elif type(input) is type(lambda x : None):
         return input
 
 class coiling_axis(object):
-    def __init__(self, start_point: Vector3, tangent: Vector3, normal: Vector3, coiling_rate, displacement_rate, coiling_radius, scaling_factor, iterations: int):        
-        self.current_angle = 0.0
-        self.current_axis_position = start_point
+    def __init__(self, start_point: Vector3, tangent: Vector3, normal: Vector3, coiling_rate, displacement, coiling_radius, scaling_factor, iterations: int):        
+        self.start_point = start_point
 
         self.tangent = tangent.normalize()
         self.normal = (normal - normal.project(tangent)).normalize()
         self.binormal = (normal ** tangent).normalize()
 
-        self.displacement_rate = make_lambda_function(displacement_rate)
+        self.displacement = make_lambda_function(displacement)
         self.coiling_rate = make_lambda_function(coiling_rate)
         self.coiling_radius = make_lambda_function(coiling_radius)
         self.scaling_factor = make_lambda_function(scaling_factor)
@@ -125,10 +108,12 @@ class coiling_axis(object):
         self.current_iteration = 0
 
     def get_axis_position(self):
-        return self.current_axis_position
+        current_axis_position = self.displacement(self.current_iteration)
+        return current_axis_position * self.tangent + self.start_point
 
     def get_normal_vector(self):
-        return math.cos(self.current_angle) * self.normal + math.sin(self.current_angle) * self.binormal
+        current_angle = self.coiling_rate(self.current_iteration)
+        return math.cos(current_angle) * self.normal + math.sin(current_angle) * self.binormal
 
     def get_tangent_vector(self):
         return self.tangent
@@ -140,10 +125,8 @@ class coiling_axis(object):
         return self.scaling_factor(self.current_iteration)
 
     def iterate(self):
-        self.current_angle += self.coiling_rate(self.current_iteration)
-        self.current_axis_position = self.current_axis_position + self.displacement_rate(self.current_iteration) * self.tangent
         self.current_iteration += 1
-        return self.current_iteration == self.max_iterations
+        return self.current_iteration < self.max_iterations
 
 def make_circle(r, n):
     center = Vector2(0, 0)
@@ -164,7 +147,7 @@ def generate_coil(generating_shape, coiling_axis):
     last_vertices = []
     tangent = coiling_axis.get_tangent_vector()
 
-    while True:
+    while coiling_axis.iterate():
         new_vertices = []
 
         axis_position = coiling_axis.get_axis_position()
@@ -194,11 +177,8 @@ def generate_coil(generating_shape, coiling_axis):
                     last_vertices[i], last_vertices[(i + 1) % l],
                     new_vertices[(i + 1) % l], new_vertices[i]
                 ])
-
+                
         last_vertices = new_vertices
-
-        if coiling_axis.iterate():
-            break
 
     generate_mesh(vertices, edges, faces)
 
@@ -213,32 +193,141 @@ def generate_mesh(vertices, edges, faces):
     bpy.context.scene.collection.children.link(new_collection)
 
     new_collection.objects.link(new_object)
+    
+# Generating some seashells...
 
+# Tubular Shell
+start = Vector3(0,0,10)
+tangent = Vector3(0,0,1)
+normal = Vector3(1,0,0)
 
-start = Vector3(0,0,0)
-tangent = Vector3(1,0,0)
-normal = Vector3(0,1,0)
+l = 2
 
-displacement_rate = 0.1
-coiling_rate = 0.125
-coiling_radius = 2
-scaling_factor = 1
+def coiling_rate(n):
+    return n * math.pi / 18
 
-iterations = 101
+def displacement(n):
+    return 0
 
-axis = coiling_axis(start, tangent, normal, coiling_rate, displacement_rate, coiling_radius, scaling_factor, iterations)
+def coiling_radius(n):
+    return 0.0005 * n ** 2
 
+def scaling_factor(n):
+    return 0.0005 * n ** 2
+
+iterations = 109
+
+axis = coiling_axis(start, tangent, normal, coiling_rate, displacement, coiling_radius, scaling_factor, iterations)
 circle = make_circle(1, 20)
 
 generate_coil(circle, axis)
 
-
-'''
-# Helicospiral
-
-start = Vector3(0,0,0)
+# Classical shell
+start = Vector3(20,0,0)
 tangent = Vector3(0,0,1)
 normal = Vector3(1,0,0)
 
-coiling_rate = math.pi / 18
-'''
+l = 1.01
+
+def coiling_rate(n):
+    return n * math.pi / 18
+
+def displacement(n):
+    return 5 * l ** (n - 300)
+
+def coiling_radius(n):
+    return l ** (n - 300)
+
+def scaling_factor(n):
+    return l ** (n - 300)
+
+iterations = 400
+
+axis = coiling_axis(start, tangent, normal, coiling_rate, displacement, coiling_radius, scaling_factor, iterations)
+circle = make_circle(1, 20)
+
+generate_coil(circle, axis)
+
+# spherical shell
+
+start = Vector3(35,0,0)
+tangent = Vector3(0,0,1)
+normal = Vector3(1,0,0)
+
+l = 1.03
+
+def coiling_rate(n):
+    return n * math.pi / 18
+
+def displacement(n):
+    return 0.35 * 1.5 * l ** (n - 300)
+
+def coiling_radius(n):
+    return 0.35 * l ** (n - 300)
+
+def scaling_factor(n):
+    return 0.35 * l ** (n - 300)
+
+iterations = 400
+
+axis = coiling_axis(start, tangent, normal, coiling_rate, displacement, coiling_radius, scaling_factor, iterations)
+circle = make_circle(1, 20)
+
+generate_coil(circle, axis)
+
+# custom generating curve shell...
+
+start = Vector3(55,0,0)
+tangent = Vector3(0,0,1)
+normal = Vector3(1,0,0)
+
+l = 1.03
+
+def coiling_rate(n):
+    return n * math.pi / 18
+
+def displacement(n):
+    return 0.5 * 1.5 * l ** (n - 300)
+
+def coiling_radius(n):
+    return 0
+
+def scaling_factor(n):
+    return 0.5 * (l ** (n - 300)) / 6
+
+iterations = 400
+
+axis = coiling_axis(start, tangent, normal, coiling_rate, displacement, coiling_radius, scaling_factor, iterations)
+generating_curve = [
+    Vector2(0,-6), Vector2(0,-4), Vector2(0,-2), Vector2(0,0), Vector2(0,2), Vector2(0,4), Vector2(0,6),
+    Vector2(0.2, 6.3), Vector2(0.4, 6.1), Vector2(0.672, 5.5), Vector2(0.845, 5), Vector2(1, 4), Vector2(2, 2),
+    Vector2(3.394, 0), Vector2(4.363, -2), Vector2(3.394, -4), Vector2(1.104, -6), Vector2(0.4, -6.4), Vector2(0.2, -6.3)
+]
+
+generate_coil(generating_curve, axis)
+
+# Patelliform Shell
+start = Vector3(65,0,10)
+tangent = Vector3(0,1,0)
+normal = Vector3(1,0,0)
+
+l = 1.34
+
+def coiling_rate(n):
+    return n * math.pi / 18
+
+def displacement(n):
+    return 0
+
+def coiling_radius(n):
+    return 0.0075 * l ** (n - 300)
+
+def scaling_factor(n):
+    return 0.0075 * l ** (n - 300)
+
+iterations = 325
+
+axis = coiling_axis(start, tangent, normal, coiling_rate, displacement, coiling_radius, scaling_factor, iterations)
+circle = make_circle(1, 20)
+
+generate_coil(circle, axis)
