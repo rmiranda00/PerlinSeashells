@@ -18,11 +18,6 @@ float turbulence(point Point, float pixelsize, float Time)
     return t;
 }
 
-color scalar_to_color(color in_color, float x)
-{
-    return in_color + x;
-}
-
 color color_of_emission(float radius, float innerR, float outerR)
 {
     if (radius < innerR) {
@@ -33,13 +28,6 @@ color color_of_emission(float radius, float innerR, float outerR)
 
     float x = (radius - innerR) / (outerR - innerR);
     return color(1.0, x, 0.0);
-}
-
-color marble(point Point, float pixelsize, float Time, color in_color, float period)
-{
-    float x = Point[1] + turbulence(Point, pixelsize, Time);
-    // float x = distance(Point, point(0,0,0)) + turbulence(Point, pixelsize, Time);
-    return scalar_to_color(in_color, sin(x/period));
 }
 
 color fire(point Point, float pixelsize, float Time, point center, float innerRadius, float outerRadius)
@@ -54,24 +42,15 @@ color fire(point Point, float pixelsize, float Time, point center, float innerRa
 }
 
 shader fire(
-    color in_color = color(1.0, 1.0, 1.0),
     float Time = 1.0,
     float pixelsize = 0.2,
-    float period = 1.0,
     float innerRadius = 1.0,
     float outerRadius = 2.0,
-    output color Turbulence = 0.8,
-    output color Marble = 0.8,
-    output color Fire = 0.8,)
+    output color Fire = 0.8,
+    point center = point(0, 0, 0),)
 {
     point Point = P;
     
-    /* Perlin 4D Turbulence */
-    Turbulence = in_color * turbulence(Point, pixelsize, Time);
-
-    /* Perlin marble Texture */
-    Marble = marble(Point, pixelsize, Time, in_color, period);
-    
     /* Perlin fire Texture */
-    Fire = fire(Point, pixelsize, Time, point(0, 0, 0), innerRadius, outerRadius);
+    Fire = fire(Point, pixelsize, Time, center, innerRadius, outerRadius);
 }
