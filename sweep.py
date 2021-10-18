@@ -138,7 +138,7 @@ def make_circle(r, n):
         vertices.append(p_i)
     return vertices
 
-def generate_coil(generating_shape, coiling_axis):
+def generate_sweep(generating_shape, coiling_axis):
     vertices = []
     n_vertices = 0
     edges = []
@@ -220,7 +220,7 @@ iterations = 109
 axis = coiling_axis(start, tangent, normal, coiling_rate, displacement, coiling_radius, scaling_factor, iterations)
 circle = make_circle(1, 20)
 
-generate_coil(circle, axis)
+generate_sweep(circle, axis)
 
 # Classical shell
 start = Vector3(20,0,0)
@@ -246,7 +246,7 @@ iterations = 400
 axis = coiling_axis(start, tangent, normal, coiling_rate, displacement, coiling_radius, scaling_factor, iterations)
 circle = make_circle(1, 20)
 
-generate_coil(circle, axis)
+generate_sweep(circle, axis)
 
 # spherical shell
 
@@ -273,7 +273,7 @@ iterations = 400
 axis = coiling_axis(start, tangent, normal, coiling_rate, displacement, coiling_radius, scaling_factor, iterations)
 circle = make_circle(1, 20)
 
-generate_coil(circle, axis)
+generate_sweep(circle, axis)
 
 # custom generating curve shell...
 
@@ -304,7 +304,7 @@ generating_curve = [
     Vector2(3.394, 0), Vector2(4.363, -2), Vector2(3.394, -4), Vector2(1.104, -6), Vector2(0.4, -6.4), Vector2(0.2, -6.3)
 ]
 
-generate_coil(generating_curve, axis)
+generate_sweep(generating_curve, axis)
 
 # Patelliform Shell
 start = Vector3(65,0,10)
@@ -330,4 +330,4 @@ iterations = 325
 axis = coiling_axis(start, tangent, normal, coiling_rate, displacement, coiling_radius, scaling_factor, iterations)
 circle = make_circle(1, 20)
 
-generate_coil(circle, axis)
+generate_sweep(circle, axis)
