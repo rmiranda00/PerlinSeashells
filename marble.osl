@@ -31,7 +31,7 @@ color marble(point Point, float pixelsize, float Time, color in_color, float per
 }
 
 shader marble(
-    color in_color = color(1.0, 1.0, 1.0),
+    color in_color = color(0.0, 1.0, 0.0),
     float Time = 0.0,
     float pixelsize = 0.2,
     float period = 1.0,

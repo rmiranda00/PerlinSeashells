@@ -20,14 +20,26 @@ float turbulence(point Point, float pixelsize, float Time)
 
 color color_of_emission(float radius, float innerR, float outerR)
 {
-    if (radius < innerR) {
-        return color(1.0, 0.0, 0.0);
-    } else if (radius > outerR) {
-        return color(1.0, 1.0, 0.0);
-    }
-
+    // Interpolate radius between 0 and 1
     float x = (radius - innerR) / (outerR - innerR);
-    return color(1.0, x, 0.0);
+    float cutoff = 0.75;
+    float blend;
+    
+    color red = color(1.0, 0.0, 0.0);
+    color yellow = color(1.0, 1.0, 0.0);
+    color white = color(1.0, 1.0, 1.0);
+
+    color low, high;
+    if (x < cutoff) {
+        blend = smoothstep(0, cutoff, x);
+        low = red;
+        high = yellow;
+    } else {
+        blend = smoothstep(cutoff, 1, x);
+        low = yellow;
+        high = white;
+    }
+    return mix(low, high, blend);
 }
 
 color fire(point Point, float pixelsize, float Time, point center, float innerRadius, float outerRadius)
