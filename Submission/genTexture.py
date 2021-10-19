@@ -2,7 +2,6 @@ import bpy
 
 bpy.context.scene.render.engine = 'CYCLES'
 bpy.context.scene.cycles.shading_system = True
-bpy.context.space_data.shading.type = 'RENDERED'
 
 texture_names = ["Fire",  "Marble", "Turbulence", "Water"]
 
