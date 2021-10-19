@@ -339,32 +339,6 @@ axis = coiling_axis(start, tangent, normal, coiling_rate, displacement, coiling_
 
 generate_sweep(axis)
 
-# Patelliform Shell
-start = Vector3(65,0,10)
-tangent = Vector3(0,1,0)
-normal = Vector3(1,0,0)
-
-l = 1.34
-
-def coiling_rate(n):
-    return n * math.pi / 18
-
-def displacement(n):
-    return 0
-
-def coiling_radius(n):
-    return 0.0075 * l ** (n - 300)
-
-def scaling_factor(n):
-    return 0.0075 * l ** (n - 300)
-
-iterations = 325
-
-circle = make_circle(1, 20)
-axis = coiling_axis(start, tangent, normal, coiling_rate, displacement, coiling_radius, scaling_factor, circle, iterations)
-
-generate_sweep(axis)
-
 '''
 Homotopy Example
 
@@ -400,7 +374,7 @@ generate_sweep(axis)
 '''
 
 # Varying generating curve example...
-start = Vector3(85,0,0)
+start = Vector3(70,0,0)
 tangent = Vector3(0,0,1)
 normal = Vector3(1,0,0)
 
@@ -428,8 +402,8 @@ inner_curve = [
 
 outer_curve = [
     Vector2(0,-6), Vector2(0,-4), Vector2(0,-2), Vector2(0,0), Vector2(0,2), Vector2(0,4), Vector2(0,6),
-    Vector2(0.2, 6.3), Vector2(0.4, 6.1), Vector2(0.672, 5.5), Vector2(0.845, 5.3), Vector2(1 * 1.25, 5), Vector2(2 * 1.25, 3),
-    Vector2(3.394 * 1.25, 0), Vector2(4.363 * 1.25, -3), Vector2(3.394 * 1.25, -5), Vector2(1.104 * 1.25, -6), Vector2(0.4, -6.4), Vector2(0.2, -6.3)
+    Vector2(0.2, 6.3), Vector2(0.4, 6.1), Vector2(0.672,5.5), Vector2(0.845*1.25, 4.5), Vector2(2,4), Vector2(3.5,3),
+    Vector2(5,1), Vector2(5.2,-2), Vector2(3.394*1.25,-4), Vector2(2,-5.5), Vector2(0.8,-6.4), Vector2(0.2, -6.3)
 ]
 
 def generating_curve(n):
@@ -440,5 +414,31 @@ def generating_curve(n):
 
 
 axis = coiling_axis(start, tangent, normal, coiling_rate, displacement, coiling_radius, scaling_factor, generating_curve, iterations)
+
+generate_sweep(axis)
+
+# Patelliform Shell
+start = Vector3(80,0,10)
+tangent = Vector3(0,1,0)
+normal = Vector3(1,0,0)
+
+l = 1.34
+
+def coiling_rate(n):
+    return n * math.pi / 18
+
+def displacement(n):
+    return 0
+
+def coiling_radius(n):
+    return 0.0075 * l ** (n - 300)
+
+def scaling_factor(n):
+    return 0.0075 * l ** (n - 300)
+
+iterations = 325
+
+circle = make_circle(1, 20)
+axis = coiling_axis(start, tangent, normal, coiling_rate, displacement, coiling_radius, scaling_factor, circle, iterations)
 
 generate_sweep(axis)
